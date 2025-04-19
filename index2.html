@@ -17,83 +17,113 @@
       border-collapse: collapse;
       margin-top: 20px;
     }
-    th, td {
+    td {
       border: 1px solid #aaa;
       padding: 10px;
       vertical-align: top;
+    }
+    .label-cell {
+      font-weight: bold;
+      width: 15%;
+      text-align: center;
+      white-space: nowrap;
+    }
+    .forecast-cell {
+      width: 45%;
+    }
+    .extended-cell {
+      background-color: #f9f9f9;
+      text-align: center;
+      width: 40%;
+    }
+    .extended-content {
+      display: inline-block;
+      max-width: 100%;
       text-align: left;
+      padding: 10px;
+      word-wrap: break-word;
+      line-height: 1.5;
+    }
+    .meta {
+      font-family: monospace;
+      font-size: 0.9em;
+      color: #555;
+      margin-bottom: 20px;
     }
     .bg-low {
-      background-color: lightgreen;
+      background-color: lightgreen !important;
     }
     .bg-moderate {
-      background-color: khaki;
+      background-color: khaki !important;
     }
     .bg-high {
-      background-color: lightpink;
+      background-color: lightpink !important;
     }
   </style>
 </head>
 <body>
-  <h1>Surf Zone Forecast – Port Aransas</h1>
-  <table id="forecastTable">
-    <thead>
-      <tr>
-        <th>Period</th>
-        <th>Forecast</th>
-      </tr>
-    </thead>
-    <tbody>
-      <!-- Forecast rows will be inserted here -->
-    </tbody>
+  <h1>Surf Zone Forecast</h1>
+  <div class="meta">From NWS Corpus Christi | NOAA | Gulf Coast</div>
+
+  <table>
+    <tr>
+      <td id="label-today" class="label-cell">TODAY</td>
+      <td id="today" class="forecast-cell">Loading...</td>
+      <td id="extended" class="extended-cell" rowspan="3">
+        <div class="extended-content">
+          <strong>EXTENDED FORECAST</strong><br>Loading...
+        </div>
+      </td>
+    </tr>
+    <tr>
+      <td id="label-tonight" class="label-cell">TONIGHT</td>
+      <td id="tonight" class="forecast-cell">Loading...</td>
+    </tr>
+    <tr>
+      <td id="label-tomorrow" class="label-cell">TOMORROW</td>
+      <td id="tomorrow" class="forecast-cell">Loading...</td>
+    </tr>
   </table>
 
   <script>
-    async function loadSurfZoneForecast() {
+    async function fetchSurfZoneForecast() {
       const proxy = "https://api.codetabs.com/v1/proxy?quest=";
       const url = "https://tgftp.nws.noaa.gov/data/raw/fz/fzus54.kcrp.srf.crp.txt";
 
       try {
         const response = await fetch(proxy + encodeURIComponent(url));
         const text = await response.text();
+        const sections = text.split(/\n(?=\.[A-Z ]+\.\.\.)/); // split by .TODAY..., etc.
 
-        const forecastTableBody = document.querySelector("#forecastTable tbody");
-        forecastTableBody.innerHTML = ""; // Clear existing content
+        let todayText = "No data available.";
+        let tonightText = "No data available.";
+        let tomorrowText = "No data available.";
+        let extendedText = "";
 
-        // Split the forecast into sections based on periods
-        const sections = text.split(/\n\./).map(section => section.trim()).filter(section => section);
+        function extractRisk(forecast) {
+          const match = forecast.match(/rip current risk\*?:?\s*(LOW|MODERATE|HIGH)/i);
+          return match ? match[1].toUpperCase() : null;
+        }
 
-        sections.forEach(section => {
-          const periodMatch = section.match(/^([A-Z ]+)\.\.\./);
-          if (periodMatch) {
-            const period = periodMatch[1].trim();
-            const forecastText = section.replace(/^([A-Z ]+)\.\.\./, "").trim();
+        function setRiskColor(risk, labelId) {
+          const cell = document.getElementById(labelId);
+          cell.classList.remove("bg-low", "bg-moderate", "bg-high");
+          if (risk === "LOW") cell.classList.add("bg-low");
+          if (risk === "MODERATE") cell.classList.add("bg-moderate");
+          if (risk === "HIGH") cell.classList.add("bg-high");
+        }
 
-            // Determine rip current risk level
-            let riskLevel = "";
-            const riskMatch = forecastText.match(/Rip Current Risk\*?.*?(LOW|MODERATE|HIGH)/i);
-            if (riskMatch) {
-              riskLevel = riskMatch[1].toUpperCase();
-            }
-
-            // Create table row
-            const row = document.createElement("tr");
-            if (riskLevel === "LOW") row.classList.add("bg-low");
-            else if (riskLevel === "MODERATE") row.classList.add("bg-moderate");
-            else if (riskLevel === "HIGH") row.classList.add("bg-high");
-
-            const periodCell = document.createElement("td");
-            periodCell.textContent = period;
-
-            const forecastCell = document.createElement("td");
-            forecastCell.textContent = forecastText;
-
-            row.appendChild(periodCell);
-            row.appendChild(forecastCell);
-            forecastTableBody.appendChild(row);
-          }
-        });
-      } catch (err) {
-        console.error("Error loading surf forecast:", err);
-        const forecastTableBody = document.querySelector("#forecastTable tbody");
-        forecastTableBody.innerHTML = "<tr><td colspan='2'>⚠️ Failed to load surf zone forecast
+        for (let section of sections) {
+          if (section.startsWith(".TODAY...")) {
+            todayText = section.replace(".TODAY...", "").trim();
+          } else if (section.startsWith(".TONIGHT...")) {
+            tonightText = section.replace(".TONIGHT...", "").trim();
+          } else if (
+            section.match(/\.(SUNDAY|MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY)\.\.\./) &&
+            tomorrowText === "No data available."
+          ) {
+            tomorrowText = section.replace(/\.[A-Z]+\.\.\./, "").trim();
+          } else if (section.startsWith(".EXTENDED...")) {
+            extendedText = section.replace(".EXTENDED...", "").trim();
+          } else if (section.match(/^\.(SUNDAY|MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY)/)) {
+            extendedText += " " +
