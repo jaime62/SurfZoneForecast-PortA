@@ -2,28 +2,158 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Surf Forecast Test</title>
+  <title>Surf Zone Forecast</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    td {
+      border: 1px solid #aaa;
+      padding: 10px;
+      vertical-align: top;
+    }
+    .label-cell {
+      font-weight: bold;
+      width: 15%;
+      white-space: nowrap;
+    }
+    .forecast-cell {
+      width: 45%;
+    }
+    .extended-cell {
+      background-color: #f9f9f9;
+      text-align: center;
+      width: 40%;
+    }
+    .extended-content {
+      display: inline-block;
+      max-width: 100%;
+      text-align: left;
+      padding: 10px;
+      word-wrap: break-word;
+      line-height: 1.5;
+    }
+    .meta {
+      margin-bottom: 20px;
+      white-space: pre-wrap;
+      font-family: monospace;
+    }
+    .bg-low {
+      background-color: lightgreen !important;
+    }
+    .bg-moderate {
+      background-color: khaki !important;
+    }
+    .bg-high {
+      background-color: lightpink !important;
+    }
+    .datetime {
+      color: #007BFF;
+      font-weight: bold;
+    }
+  </style>
 </head>
 <body>
-  <h1>Surf Forecast Test</h1>
-  <p id="output">Fetching forecast...</p>
+  <h1>Surf Zone Forecast</h1>
+  <div id="meta" class="meta">Loading...</div>
+
+  <table>
+    <tr>
+      <td style="vertical-align: middle; text-align: center;" id="label-today" class="label-cell">TODAY</td>
+      <td id="today" class="forecast-cell">Loading...</td>
+      <td id="extended" class="extended-cell" rowspan="3">
+        <div class="extended-content">
+          <strong>EXTENDED FORECAST</strong><br>Loading...
+        </div>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: middle; text-align: center;" id="label-tonight" class="label-cell">TONIGHT</td>
+      <td id="tonight" class="forecast-cell">Loading...</td>
+    </tr>
+    <tr>
+      <td style="vertical-align: middle; text-align: center;" id="label-tomorrow" class="label-cell">TOMORROW</td>
+      <td id="tomorrow" class="forecast-cell">Loading...</td>
+    </tr>
+  </table>
 
   <script>
-    console.log("Script loaded!");
-
     async function fetchForecast() {
       const proxyUrl = 'https://api.allorigins.win/get?url=';
       const targetUrl = encodeURIComponent('https://tgftp.nws.noaa.gov/data/raw/fz/fzus54.kcrp.srf.crp.txt');
-
       try {
-        console.log("Trying to fetch forecast...");
         const response = await fetch(proxyUrl + targetUrl);
         const data = await response.json();
-        console.log("Forecast data received:", data.contents);
-        document.getElementById("output").innerText = data.contents.substring(0, 300) + "...";
+        const text = data.contents;
+
+        const lines = text.split("\n");
+        const todayIndex = lines.findIndex(line => line.includes(".TODAY..."));
+        const metaLines = lines.slice(0, Math.min(todayIndex, 15)).map(line => {
+          return line.replace(/(\d{1,2}:\d{2} [AP]M [A-Z]{3} \w+ \w+ \d{1,2} \d{4})/g, '<span class="datetime">$1</span>')
+                     .replace(/(\d{1,4} [AP]M [A-Z]{3} \w+ \w+ \d{1,2} \d{4})/g, '<span class="datetime">$1</span>'); // Handles 242 PM CDT style
+        });
+
+        document.getElementById("meta").innerHTML = metaLines.join("<br>");
+
+        const sections = text.split(/\n(?=\.[A-Z ]+\.\.\.)/);
+
+        let todayText = "No data available.";
+        let tonightText = "No data available.";
+        let tomorrowText = "No data available.";
+        let extendedText = "";
+
+        function extractRipRisk(forecast) {
+          const match = forecast.match(/Rip Current Risk\*.*?(LOW|MODERATE|HIGH)/i);
+          return match ? match[1].toUpperCase() : null;
+        }
+
+        function setRiskBackground(risk, labelId) {
+          const cell = document.getElementById(labelId);
+          cell.classList.remove("bg-low", "bg-moderate", "bg-high");
+          if (risk === "LOW") cell.classList.add("bg-low");
+          if (risk === "MODERATE") cell.classList.add("bg-moderate");
+          if (risk === "HIGH") cell.classList.add("bg-high");
+        }
+
+        for (let section of sections) {
+          if (section.startsWith(".TODAY...")) {
+            todayText = section.replace(".TODAY...", "").trim();
+          } else if (section.startsWith(".TONIGHT...")) {
+            tonightText = section.replace(".TONIGHT...", "").trim();
+          } else if (section.match(/\.(FRIDAY|SATURDAY|SUNDAY|MONDAY|TUESDAY|WEDNESDAY|THURSDAY)\.\.\./) && tomorrowText === "No data available.") {
+            tomorrowText = section.replace(/\.[A-Z]+\.\.\./, "").trim();
+          } else if (section.startsWith(".EXTENDED...")) {
+            extendedText = section.replace(".EXTENDED...", "").trim();
+          } else if (section.match(/^\.(SATURDAY|SUNDAY|MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY)/)) {
+            extendedText += " " + section.trim();
+          }
+        }
+
+        const todayRisk = extractRipRisk(todayText);
+        const tonightRisk = extractRipRisk(tonightText);
+        const tomorrowRisk = extractRipRisk(tomorrowText);
+
+        setRiskBackground(todayRisk, "label-today");
+        setRiskBackground(tonightRisk, "label-tonight");
+        setRiskBackground(tomorrowRisk, "label-tomorrow");
+
+        document.getElementById('today').innerHTML = todayText.replace(/\n/g, "<br>");
+        document.getElementById('tonight').innerHTML = tonightText.replace(/\n/g, "<br>");
+        document.getElementById('tomorrow').innerHTML = tomorrowText.replace(/\n/g, "<br>");
+        document.getElementById('extended').innerHTML = `
+          <div class="extended-content">
+            <strong>EXTENDED FORECAST</strong><br>${extendedText.trim().replace(/\n/g, " ")}
+          </div>
+        `;
       } catch (error) {
-        console.error("Fetch error:", error);
-        document.getElementById("output").innerText = "⚠️ Failed to load forecast data.";
+        console.error("Error fetching forecast:", error);
+        document.getElementById("meta").innerText = "Failed to load forecast.";
+        document.querySelector("table").innerHTML = "<tr><td colspan='3'>Failed to load forecast data.</td></tr>";
       }
     }
 
