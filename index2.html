@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -71,7 +72,7 @@
         forecastDiv.textContent = forecastText;
 
         // Apply background based on rip current risk
-        const riskMatch = forecastText.match(/Rip Current Risk:\s*(Low|Moderate|High)/);
+        const riskMatch = forecastText.match(/RIP CURRENT RISK:\s*(LOW|MODERATE|HIGH)/i);
         if (riskMatch) {
           const risk = riskMatch[1].toUpperCase();
           box.classList.remove("bg-low", "bg-moderate", "bg-high");
