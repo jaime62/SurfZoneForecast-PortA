@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Surf Zone Forecast – Port Aransas</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      max-width: 900px;
+    }
+    h1 {
+      text-align: center;
+    }
+    .meta {
+      font-family: monospace;
+      color: #555;
+      margin-bottom: 20px;
+    }
+    .box {
+      padding: 20px;
+      border: 1px solid #aaa;
+      border-radius: 10px;
+      background: #f9f9f9;
+      white-space: pre-wrap;
+      line-height: 1.5;
+    }
+    .bg-low {
+      background-color: lightgreen !important;
+    }
+    .bg-moderate {
+      background-color: khaki !important;
+    }
+    .bg-high {
+      background-color: lightpink !important;
+    }
+  </style>
+</head>
+<body>
+  <h1>Surf Zone Forecast</h1>
+  <div class="meta">From NWS Corpus Christi | NOAA | Gulf Coast</div>
+  <div id="forecastBox" class="box">Loading forecast...</div>
+
+  <script>
+    async function loadSurfZoneForecast() {
+      const proxy = "https://api.codetabs.com/v1/proxy?quest=";
+      const url = "https://tgftp.nws.noaa.gov/data/raw/fz/fzus54.kcrp.srf.crp.txt";
+
+      try {
+        const response = await fetch(proxy + encodeURIComponent(url));
+        const text = await response.text();
+
+        const box = document.getElementById("forecastBox");
+        box.textContent = text;
+
+        // Determine rip current risk
+        const riskMatch = text.match(/Rip Current Risk\*?.*?(LOW|MODERATE|HIGH)/i);
+        if (riskMatch) {
+          const risk = riskMatch[1].toUpperCase();
+          box.classList.remove("bg-low", "bg-moderate", "bg-high");
+          if (risk === "LOW") box.classList.add("bg-low");
+          if (risk === "MODERATE") box.classList.add("bg-moderate");
+          if (risk === "HIGH") box.classList.add("bg-high");
+        }
+      } catch (err) {
+        console.error("Error loading surf forecast:", err);
+        document.getElementById("forecastBox").textContent = "⚠️ Failed to load surf zone forecast.";
+      }
+    }
+
+    loadSurfZoneForecast();
+  </script>
+</body>
+</html>
