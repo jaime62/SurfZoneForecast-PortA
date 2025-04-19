@@ -127,7 +127,7 @@
         let extendedText = "";
 
         const hasStructuredSections = text.includes(".TODAY...") || text.includes(".TONIGHT...");
-
+/*
         function highlightRipCurrentRisk(text) {
           return text.replace(
             /(Rip Current Risk\*?.*?)(Low|Moderate|High)/g,
@@ -140,7 +140,7 @@
             }
           );
         }
-
+*/
         function getWeatherIcon(text) {
           const t = text.toLowerCase();
           if (t.includes("thunderstorm")) return "wi-thunderstorm";
