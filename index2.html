@@ -13,44 +13,19 @@
     h1 {
       text-align: center;
     }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 20px;
-    }
-    td {
-      border: 1px solid #aaa;
-      padding: 10px;
-      vertical-align: top;
-    }
-    .label-cell {
-      font-weight: bold;
-      width: 15%;
-      text-align: center;
-      white-space: nowrap;
-    }
     .forecast-cell {
-      width: 45%;
-      text-align: center;
-    }
-    .extended-cell {
-      background-color: #f9f9f9;
-      text-align: center;
-      width: 40%;
-    }
-    .extended-content {
-      display: inline-block;
-      max-width: 100%;
-      text-align: left;
-      padding: 10px;
-      word-wrap: break-word;
-      line-height: 1.5;
-    }
-    .meta {
-      font-family: monospace;
-      font-size: 0.9em;
-      color: #555;
+      border: 1px solid #aaa;
+      padding: 15px;
       margin-bottom: 20px;
+      border-radius: 10px;
+      background: #f9f9f9;
+      white-space: pre-wrap;
+    }
+    .wi {
+      font-size: 36px;
+      display: block;
+      margin-bottom: 10px;
+      color: #444;
     }
     .bg-low {
       background-color: lightgreen !important;
@@ -61,134 +36,71 @@
     .bg-high {
       background-color: lightpink !important;
     }
-    .wi {
-      font-size: 36px;
-      margin-bottom: 5px;
-      display: block;
-      color: #444;
+    .meta {
+      font-family: monospace;
+      color: #666;
+      margin-bottom: 10px;
+      text-align: center;
     }
   </style>
 </head>
 <body>
   <h1>Surf Zone Forecast</h1>
-  <div class="meta">From NWS Corpus Christi | NOAA | Gulf Coast</div>
+  <div class="meta">Data from NWS Corpus Christi</div>
 
-  <table>
-    <tr>
-      <td id="label-today" class="label-cell">TODAY</td>
-      <td class="forecast-cell">
-        <i id="icon-today" class="wi"></i>
-        <div id="today">Loading...</div>
-      </td>
-      <td id="extended" class="extended-cell" rowspan="3">
-        <div class="extended-content">
-          <strong>EXTENDED FORECAST</strong><br>Loading...
-        </div>
-      </td>
-    </tr>
-    <tr>
-      <td id="label-tonight" class="label-cell">TONIGHT</td>
-      <td class="forecast-cell">
-        <i id="icon-tonight" class="wi"></i>
-        <div id="tonight">Loading...</div>
-      </td>
-    </tr>
-    <tr>
-      <td id="label-tomorrow" class="label-cell">TOMORROW</td>
-      <td class="forecast-cell">
-        <i id="icon-tomorrow" class="wi"></i>
-        <div id="tomorrow">Loading...</div>
-      </td>
-    </tr>
-  </table>
+  <div id="forecast" class="forecast-cell">
+    <i id="forecast-icon" class="wi wi-na"></i>
+    <div id="forecast-text">Loading...</div>
+  </div>
 
   <script>
-    async function fetchSurfZoneForecast() {
+    async function fetchForecast() {
       const proxy = "https://api.codetabs.com/v1/proxy?quest=";
       const url = "https://tgftp.nws.noaa.gov/data/raw/fz/fzus54.kcrp.srf.crp.txt";
 
       try {
         const response = await fetch(proxy + encodeURIComponent(url));
         const text = await response.text();
-        const sections = text.split(/\n(?=\.[A-Z ]+\.\.\.)/);
 
-        let todayText = "No data available.";
-        let tonightText = "No data available.";
-        let tomorrowText = "No data available.";
-        let extendedText = "";
+        const forecastText = text.trim();
+        const box = document.getElementById("forecast");
+        const forecastDiv = document.getElementById("forecast-text");
+        const icon = document.getElementById("forecast-icon");
 
-        function extractRisk(forecast) {
-          const match = forecast.match(/rip current risk\*?:?\s*(LOW|MODERATE|HIGH)/i);
-          return match ? match[1].toUpperCase() : null;
+        // Set full forecast text
+        forecastDiv.textContent = forecastText;
+
+        // Apply background based on rip current risk
+        const riskMatch = forecastText.match(/RIP CURRENT RISK:\s*(LOW|MODERATE|HIGH)/i);
+        if (riskMatch) {
+          const risk = riskMatch[1].toUpperCase();
+          box.classList.remove("bg-low", "bg-moderate", "bg-high");
+          if (risk === "LOW") box.classList.add("bg-low");
+          if (risk === "MODERATE") box.classList.add("bg-moderate");
+          if (risk === "HIGH") box.classList.add("bg-high");
         }
 
-        function setRiskColor(risk, labelId) {
-          const cell = document.getElementById(labelId);
-          cell.classList.remove("bg-low", "bg-moderate", "bg-high");
-          if (risk === "LOW") cell.classList.add("bg-low");
-          if (risk === "MODERATE") cell.classList.add("bg-moderate");
-          if (risk === "HIGH") cell.classList.add("bg-high");
-        }
-
-        function getWeatherIcon(text) {
-          const lower = text.toLowerCase();
-          if (lower.includes("thunderstorm")) return "wi-thunderstorm";
-          if (lower.includes("showers") || lower.includes("rain")) return "wi-rain";
-          if (lower.includes("partly sunny")) return "wi-day-cloudy";
-          if (lower.includes("mostly sunny")) return "wi-day-sunny-overcast";
-          if (lower.includes("sunny")) return "wi-day-sunny";
-          if (lower.includes("cloudy")) return "wi-cloudy";
-          if (lower.includes("fog")) return "wi-fog";
+        // Determine icon based on forecast content
+        function getIcon(text) {
+          const t = text.toLowerCase();
+          if (t.includes("thunderstorm")) return "wi-thunderstorm";
+          if (t.includes("showers") || t.includes("rain")) return "wi-rain";
+          if (t.includes("sunny") && t.includes("partly")) return "wi-day-cloudy";
+          if (t.includes("mostly sunny")) return "wi-day-sunny-overcast";
+          if (t.includes("sunny")) return "wi-day-sunny";
+          if (t.includes("cloudy")) return "wi-cloudy";
+          if (t.includes("fog")) return "wi-fog";
           return "wi-na";
         }
 
-        for (let section of sections) {
-          if (section.startsWith(".TODAY...")) {
-            todayText = section.replace(".TODAY...", "").trim();
-          } else if (section.startsWith(".TONIGHT...")) {
-            tonightText = section.replace(".TONIGHT...", "").trim();
-          } else if (
-            section.match(/\.(SUNDAY|MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY)\.\.\./) &&
-            tomorrowText === "No data available."
-          ) {
-            tomorrowText = section.replace(/\.[A-Z]+\.\.\./, "").trim();
-          } else if (section.startsWith(".EXTENDED...")) {
-            extendedText = section.replace(".EXTENDED...", "").trim();
-          } else if (section.match(/^\.(SUNDAY|MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY)/)) {
-            extendedText += " " + section.trim();
-          }
-        }
-
-        // Update text
-        document.getElementById("today").innerHTML = todayText.replace(/\n/g, "<br>");
-        document.getElementById("tonight").innerHTML = tonightText.replace(/\n/g, "<br>");
-        document.getElementById("tomorrow").innerHTML = tomorrowText.replace(/\n/g, "<br>");
-        document.getElementById("extended").innerHTML = `
-          <div class="extended-content">
-            <strong>EXTENDED FORECAST</strong><br>${extendedText.trim().replace(/\n/g, " ")}
-          </div>
-        `;
-
-        // Highlight risk levels
-        setRiskColor(extractRisk(todayText), "label-today");
-        setRiskColor(extractRisk(tonightText), "label-tonight");
-        setRiskColor(extractRisk(tomorrowText), "label-tomorrow");
-
-        // Set weather icons
-        document.getElementById("icon-today").classList.add(getWeatherIcon(todayText));
-        document.getElementById("icon-tonight").classList.add(getWeatherIcon(tonightText));
-        document.getElementById("icon-tomorrow").classList.add(getWeatherIcon(tomorrowText));
-
+        icon.classList.add(getIcon(forecastText));
       } catch (err) {
-        console.error("Error loading forecast:", err);
-        document.getElementById("today").innerHTML = "⚠️ Failed to load data.";
-        document.getElementById("tonight").innerHTML = "⚠️ Failed to load data.";
-        document.getElementById("tomorrow").innerHTML = "⚠️ Failed to load data.";
-        document.getElementById("extended").innerHTML = "<div class='extended-content'>⚠️ Failed to load extended forecast.</div>";
+        console.error("Error fetching forecast:", err);
+        document.getElementById("forecast-text").textContent = "⚠️ Failed to load surf zone forecast.";
       }
     }
 
-    fetchSurfZoneForecast();
+    fetchForecast();
   </script>
 </body>
 </html>
