@@ -23,6 +23,7 @@
       border-radius: 10px;
       padding: 15px;
       background: #f9f9f9;
+      transition: background-color 0.3s ease;
     }
     .day h2 {
       margin-top: 0;
@@ -38,6 +39,16 @@
       color: #555;
       text-align: center;
       margin-bottom: 20px;
+    }
+
+    .bg-low {
+      background-color: lightgreen !important;
+    }
+    .bg-moderate {
+      background-color: khaki !important;
+    }
+    .bg-high {
+      background-color: lightpink !important;
     }
   </style>
 </head>
@@ -65,7 +76,20 @@
         const today = periods.find(p => p.name.toLowerCase() === "today");
         const tonight = periods.find(p => p.name.toLowerCase() === "tonight");
         const tomorrow = periods.find(p => p.name.toLowerCase().includes("tomorrow")) ||
-                         periods.find(p => p.name.toLowerCase() === "sunday"); // fallback
+                         periods.find(p => p.name.toLowerCase() === "sunday");
+
+        function extractRisk(text) {
+          const match = text.match(/rip current risk.*?(LOW|MODERATE|HIGH)/i);
+          return match ? match[1].toUpperCase() : null;
+        }
+
+        function setRiskColor(risk, elementId) {
+          const el = document.getElementById(elementId);
+          el.classList.remove("bg-low", "bg-moderate", "bg-high");
+          if (risk === "LOW") el.classList.add("bg-low");
+          if (risk === "MODERATE") el.classList.add("bg-moderate");
+          if (risk === "HIGH") el.classList.add("bg-high");
+        }
 
         const formatForecast = (period) => `
           <strong>${period.shortForecast}</strong><br>
@@ -74,10 +98,17 @@
           ${period.detailedForecast}
         `;
 
+        // Update each card
         document.getElementById("today").innerHTML = `<h2>${today.name}</h2><p>${formatForecast(today)}</p>`;
         document.getElementById("tonight").innerHTML = `<h2>${tonight.name}</h2><p>${formatForecast(tonight)}</p>`;
         document.getElementById("tomorrow").innerHTML = `<h2>${tomorrow.name}</h2><p>${formatForecast(tomorrow)}</p>`;
 
+        // Color-code by risk level
+        setRiskColor(extractRisk(today.detailedForecast), "today");
+        setRiskColor(extractRisk(tonight.detailedForecast), "tonight");
+        setRiskColor(extractRisk(tomorrow.detailedForecast), "tomorrow");
+
+        // Extended forecast
         const extendedHTML = periods.slice(3).map(period => `
           <p><strong>${period.name}</strong>: ${period.detailedForecast}</p>
         `).join("");
