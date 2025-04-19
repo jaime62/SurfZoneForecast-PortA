@@ -118,8 +118,10 @@
         let tomorrowText = "No data available.";
         let extendedText = "";
 
-        function extractRisk(forecast) {
-          const match = forecast.match(/Rip Current Risk:\s*(Low|Moderate|High)/);
+        const hasStructuredSections = text.includes(".TODAY...") || text.includes(".TONIGHT...");
+
+        function extractRisk(text) {
+          const match = text.match(/Rip Current Risk:\s*(Low|Moderate|High)/);
           return match ? match[1].toUpperCase() : null;
         }
 
@@ -143,24 +145,29 @@
           return "wi-na";
         }
 
-        for (let section of sections) {
-          if (section.startsWith(".TODAY...")) {
-            todayText = section.replace(".TODAY...", "").trim();
-          } else if (section.startsWith(".TONIGHT...")) {
-            tonightText = section.replace(".TONIGHT...", "").trim();
-          } else if (
-            section.match(/\.(SUNDAY|MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY)\.\.\./) &&
-            tomorrowText === "No data available."
-          ) {
-            tomorrowText = section.replace(/\.[A-Z]+\.\.\./, "").trim();
-          } else if (section.startsWith(".EXTENDED...")) {
-            extendedText = section.replace(".EXTENDED...", "").trim();
-          } else if (section.match(/^\.(SUNDAY|MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY)/)) {
-            extendedText += " " + section.trim();
+        if (hasStructuredSections) {
+          for (let section of sections) {
+            if (section.startsWith(".TODAY...")) {
+              todayText = section.replace(".TODAY...", "").trim();
+            } else if (section.startsWith(".TONIGHT...")) {
+              tonightText = section.replace(".TONIGHT...", "").trim();
+            } else if (
+              section.match(/\.(SUNDAY|MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY)\.\.\./) &&
+              tomorrowText === "No data available."
+            ) {
+              tomorrowText = section.replace(/\.[A-Z]+\.\.\./, "").trim();
+            } else if (section.startsWith(".EXTENDED...")) {
+              extendedText = section.replace(".EXTENDED...", "").trim();
+            } else if (section.match(/^\.(SUNDAY|MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY)/)) {
+              extendedText += " " + section.trim();
+            }
           }
+        } else {
+          // fallback: display entire forecast in "today" cell
+          todayText = text.trim();
         }
 
-        // Fill in forecasts
+        // Populate forecast sections
         document.getElementById("today").innerHTML = todayText.replace(/\n/g, "<br>");
         document.getElementById("tonight").innerHTML = tonightText.replace(/\n/g, "<br>");
         document.getElementById("tomorrow").innerHTML = tomorrowText.replace(/\n/g, "<br>");
@@ -170,15 +177,15 @@
           </div>
         `;
 
-        // Set label cell colors based on rip current risk
-        setRiskColor(extractRisk(todayText), "label-today");
-        setRiskColor(extractRisk(tonightText), "label-tonight");
-        setRiskColor(extractRisk(tomorrowText), "label-tomorrow");
-
         // Set icons
         document.getElementById("icon-today").classList.add(getWeatherIcon(todayText));
         document.getElementById("icon-tonight").classList.add(getWeatherIcon(tonightText));
         document.getElementById("icon-tomorrow").classList.add(getWeatherIcon(tomorrowText));
+
+        // Set risk highlights
+        setRiskColor(extractRisk(todayText), "label-today");
+        setRiskColor(extractRisk(tonightText), "label-tonight");
+        setRiskColor(extractRisk(tomorrowText), "label-tomorrow");
 
       } catch (err) {
         console.error("Error fetching forecast:", err);
