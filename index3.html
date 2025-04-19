@@ -175,10 +175,10 @@
         }
 
         // Update each cell with highlighted risk line
-        document.getElementById("TODAY").innerHTML = highlightRipCurrentRisk(todayText.replace(/\n/g, "<br>"));
-        document.getElementById("TONIGHT").innerHTML = highlightRipCurrentRisk(tonightText.replace(/\n/g, "<br>"));
-        document.getElementById("TOMORROW").innerHTML = highlightRipCurrentRisk(tomorrowText.replace(/\n/g, "<br>"));
-        document.getElementById("EXTENDED").innerHTML = `
+        document.getElementById("today").innerHTML = highlightRipCurrentRisk(todayText.replace(/\n/g, "<br>"));
+        document.getElementById("tonight").innerHTML = highlightRipCurrentRisk(tonightText.replace(/\n/g, "<br>"));
+        document.getElementById("tomorrow").innerHTML = highlightRipCurrentRisk(tomorrowText.replace(/\n/g, "<br>"));
+        document.getElementById("extended").innerHTML = `
           <div class="extended-content">
             <strong>EXTENDED FORECAST</strong><br>${highlightRipCurrentRisk(extendedText.trim().replace(/\n/g, " "))}
           </div>
