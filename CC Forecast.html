@@ -84,11 +84,11 @@
 
   <script>
     async function fetchForecast() {
-      const proxyUrl = 'https://api.allorigins.win/get?url=';
+      const proxyUrl = 'https://api.codetabs.com/v1/proxy?quest=';
       const targetUrl = encodeURIComponent('https://tgftp.nws.noaa.gov/data/raw/fz/fzus54.kcrp.srf.crp.txt');
       try {
         const response = await fetch(proxyUrl + targetUrl);
-        const data = await response.json();
+        const data = await response.text();
         const text = data.contents;
 
         const lines = text.split("\n");
