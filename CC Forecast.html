@@ -5,22 +5,25 @@
   <title>Surf Forecast Test</title>
 </head>
 <body>
-  <h1>Testing Forecast Fetch</h1>
-  <div id="output">Loading...</div>
+  <h1>Surf Forecast Test</h1>
+  <p id="output">Fetching forecast...</p>
 
   <script>
+    console.log("Script loaded!");
+
     async function fetchForecast() {
       const proxyUrl = 'https://api.allorigins.win/get?url=';
       const targetUrl = encodeURIComponent('https://tgftp.nws.noaa.gov/data/raw/fz/fzus54.kcrp.srf.crp.txt');
 
       try {
+        console.log("Trying to fetch forecast...");
         const response = await fetch(proxyUrl + targetUrl);
         const data = await response.json();
-        console.log("Fetched forecast:", data.contents);
-        document.getElementById("output").innerText = data.contents.slice(0, 500) + "...";
+        console.log("Forecast data received:", data.contents);
+        document.getElementById("output").innerText = data.contents.substring(0, 300) + "...";
       } catch (error) {
-        console.error("Error fetching forecast:", error);
-        document.getElementById("output").innerText = "Failed to fetch forecast.";
+        console.error("Fetch error:", error);
+        document.getElementById("output").innerText = "⚠️ Failed to load forecast data.";
       }
     }
 
